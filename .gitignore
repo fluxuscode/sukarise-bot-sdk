@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+build/
+dist/
+
+# Инструменты
+.pytest_cache/
+.mypy_cache/
+.pyright/
+.ruff_cache/
+
+# Редакторы
+.idea/
+.vscode/
+
+# Данные ботов и секреты: токен бота — это пароль
+.env
+*.env
+tips.json
+visits.json
+visit_log.json

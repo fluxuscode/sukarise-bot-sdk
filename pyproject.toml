@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=75", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sukarisebot"
+version = "0.1.0"
+description = "Асинхронный типизированный Python SDK для ботов SukaRise."
+readme = "README.md"
+requires-python = ">=3.13"
+license = { text = "Proprietary" }
+keywords = ["sukarise", "bot", "asyncio", "websocket", "sdk"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Framework :: AsyncIO",
+    "Intended Audience :: Developers",
+    "Natural Language :: Russian",
+    "Programming Language :: Python :: 3.13",
+    "Typing :: Typed",
+]
+dependencies = ["aiohttp>=3.13,<4"]
+
+[project.optional-dependencies]
+test = ["pytest>=9", "mypy>=1.15", "pyright>=1.1.400"]
+
+[project.scripts]
+sukarisebot = "sukarisebot.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+sukarisebot = ["py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "tests"]
+
+# Строгая проверка типов: тот же режим держит и сам SDK, и примеры.
+[tool.mypy]
+python_version = "3.13"
+strict = true
+files = ["src", "examples"]
+
+[tool.pyright]
+include = ["src", "examples"]
+pythonVersion = "3.13"
+typeCheckingMode = "strict"
