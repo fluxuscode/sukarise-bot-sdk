@@ -12,14 +12,13 @@
                  (!guess), где подсказки видят все.
   Фишки          !8ball !roll !pick !ship !rate !who !joke !fact !praise !roast !hug.
   Тело           !dance, !party (вечеринка), !orbit, !come, !follow, !sit, а когда
-                 никто не командует, бот сам бродит. В 2D-комнате он играет эмоции и
-                 реакции, в 3D-мире (где сервер их ботам не даёт) танцует фигурами
-                 по полу: круг, квадрат, зигзаг, звезда, орбита вокруг игрока.
-                 Режим бот определяет сам.
+                 никто не командует, бот сам бродит. Эмоции, реакции и посадка работают
+                 и в 2D-комнате, и в 3D-мире. Если сервер эмоций не разрешает, бот танцует
+                 фигурами по полу: круг, квадрат, зигзаг, звезда, орбита вокруг игрока.
   Общение        почта для тех, кого нет в комнате (!tell / !inbox), !seen, правила
                  комнаты, приветствие с учётом визитов, ответ на эмоции и реакции.
   Чаевые         золото, отданное боту, он благодарит и обменивает на искры
-                 (чаевые доступны в 2D-комнатах: в 3D-мире сервер их не присылает).
+                 (в 3D-мире чаевые ему пока не приходят: клиент там не умеет их отправлять).
   Личка          в личных сообщениях бот понимает: помощь, профиль, бонус, топ,
                  правила, почта.
   Владелец       !say !setrules !give !status !shutdown (только владельцу комнаты).
@@ -83,8 +82,9 @@ from sukarisebot import (
 # Настройки
 # --------------------------------------------------------------------------------------
 
-DEFAULT_ROOM = "room-771927c72430c360"
-# Шлюз ботов живёт на этом адресе; DEFAULT_URL в самом SDK указывает на сайт, а не на шлюз.
+# Комната по умолчанию не задана: укажите её в SUKARISEBOT_ROOM_ID.
+DEFAULT_ROOM = ""
+# Адрес шлюза совпадает с DEFAULT_URL из SDK; переменная SUKARISEBOT_URL его переопределяет.
 DEFAULT_URL = "wss://production-portal-refb.sukarise.ru/web/botapi"
 DATA_FILE = Path(__file__).with_name("fluxus_data.json")
 
@@ -168,8 +168,7 @@ GESTURES: tuple[tuple[str, str], ...] = (
     ("emote-float", "левитация"),
 )
 WAVE = "emote-wave"
-# В 3D-мире у бота нет эмоций (сервер их там не поддерживает), зато есть ходьба:
-# танцует он фигурами по полу.
+# Танцы фигурами по полу: ими бот танцует, когда сервер не разрешает ему эмоции.
 WALK_DANCES: dict[str, str] = {
     "circle": "Круг",
     "square": "Квадрат",
@@ -596,7 +595,7 @@ class FluxusBot(Bot):
         self._follow_seen: tuple[float, float] | None = None
         self._party: asyncio.Task[None] | None = None
         # Что сервер разрешает боту в этой комнате. Бот узнаёт это из отказов (см. attempt):
-        # в 3D-мире нет реакций и посадки, а эмоции там есть только на новых серверах.
+        # старый сервер мог отказать 3D-миру в эмоциях, реакциях или посадке.
         self.can_emote = True
         self.can_react = True
         self.can_sit = True
@@ -657,11 +656,11 @@ class FluxusBot(Bot):
 
     @property
     def three_d(self) -> bool:
-        """Бот в 3D-мире: сервер не принимает там реакции и посадку."""
+        """Сервер отказал боту в реакциях или посадке (по его отказам, см. attempt)."""
         return not self.can_react or not self.can_sit
 
     async def react_to(self, reaction: Reaction, user_id: str) -> bool:
-        """Реакция человеку (только 2D-комнаты). В 3D ничего не делает и не пристаёт к серверу."""
+        """Реакция человеку (в 2D-комнате и в 3D-мире). Отказ сервера запоминается: больше не просим."""
         if not self.can_react:
             return False
         return await self.attempt(self.api.react(reaction, user_id))
@@ -814,8 +813,9 @@ class FluxusBot(Bot):
             session.connection_id,
             len(self.profiles),
         )
-        # Машем рукой (в 2D и в новом 3D это приветствие) и пробуем сесть на несуществующее
-        # место: в 3D сервер отвечает, что посадки там нет, и так бот узнаёт, где он.
+        # Машем рукой (в 2D и в 3D это приветствие) и пробуем сесть на несуществующее
+        # место: сервер ответит, что такого места нет; отказ со словом «3D» означает,
+        # что сервер старый и посадку в 3D не умеет.
         await self.attempt(self.api.emote(WAVE))
         await self.attempt(self.api.sit_on(AnchorPosition("fluxus-probe", 0)))
         if not self._announced:
@@ -1772,6 +1772,8 @@ def main() -> None:
     if not token:
         raise SystemExit("Нужен токен бота: задайте переменную SUKARISEBOT_TOKEN или запустите файл в терминале.")
     room = os.environ.get("SUKARISEBOT_ROOM_ID", "").strip() or DEFAULT_ROOM
+    if not room:
+        raise SystemExit("Нужен ID комнаты: задайте переменную SUKARISEBOT_ROOM_ID.")
     url = os.environ.get("SUKARISEBOT_URL", "").strip() or DEFAULT_URL
     data = os.environ.get("FLUXUS_DATA", "").strip()
     try:

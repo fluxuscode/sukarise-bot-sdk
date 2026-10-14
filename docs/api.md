@@ -32,7 +32,8 @@ users = await self.api.list_room_users()
 [«Устройство SDK»](architecture.md#лимиты-частоты).
 
 **2D и 3D.** Бот работает в обычных (2D) и в 3D-комнатах. Колонка «Комнаты» показывает, где
-метод доступен. В 3D недоступные методы отказывают с `ResponseError`.
+метод доступен; в 3D-мире бот получает то же, что в 2D, кроме реакций людей, которые
+клиент там не отправляет (см. [«Что работает и что нет»](../README.md)).
 
 ## Сводка
 
@@ -41,20 +42,20 @@ users = await self.api.list_room_users()
 | [`chat(message)`](#chat) | сказать в общий чат | `chat` | 2D, 3D |
 | [`whisper(user_id, message)`](#whisper) | шёпот одному человеку | `chat` | 2D, 3D |
 | [`channel(message, tags, only_to)`](#channel) | скрытое сообщение другим ботам | `channel` | 2D, 3D |
-| [`emote(emote_id, target_user_id)`](#emote) | сыграть эмоцию | `emote` | 2D, 3D (в 3D без адресата) |
-| [`react(reaction, target_user_id)`](#react) | отправить реакцию | `emote` | только 2D |
+| [`emote(emote_id, target_user_id)`](#emote) | сыграть эмоцию | `emote` | 2D, 3D |
+| [`react(reaction, target_user_id)`](#react) | отправить реакцию | `emote` | 2D, 3D |
 | [`move_to(position)`](#move_to) | пойти в точку | `move` | 2D, 3D |
-| [`sit_on(anchor)`](#sit_on) | сесть на место мебели | `move` | только 2D |
-| [`teleport_user(user_id, position)`](#teleport_user) | переместить человека | `teleport` | только 2D |
+| [`sit_on(anchor)`](#sit_on) | сесть на место мебели | `move` | 2D, 3D |
+| [`teleport_user(user_id, position)`](#teleport_user) | переместить человека | `teleport` | 2D, 3D |
 | [`list_room_users()`](#list_room_users) | кто в комнате и где | `info` | 2D, 3D |
 | [`privileges(user_id)`](#privileges) | права человека в комнате | `info` | 2D, 3D |
 | [`set_privileges(user_id, moderator, designer)`](#set_privileges) | выдать/отобрать права | `moderate` | всегда отказ на SukaRise |
-| [`moderate(user_id, action, seconds)`](#moderate) | kick/ban/unban/mute | `moderate` | только 2D |
-| [`kick(user_id)`](#kick) | выгнать | `moderate` | только 2D |
-| [`ban(user_id, seconds)`](#ban) | заблокировать | `moderate` | только 2D |
-| [`unban(user_id)`](#unban) | снять блокировку | `moderate` | только 2D |
-| [`mute(user_id, seconds)`](#mute) | заглушить | `moderate` | только 2D |
-| [`tip(user_id, gold_bar)`](#tip) | чаевые золотом бота | `tip` | только 2D |
+| [`moderate(user_id, action, seconds)`](#moderate) | kick/ban/unban/mute | `moderate` | 2D, 3D |
+| [`kick(user_id)`](#kick) | выгнать | `moderate` | 2D, 3D |
+| [`ban(user_id, seconds)`](#ban) | заблокировать | `moderate` | 2D, 3D |
+| [`unban(user_id)`](#unban) | снять блокировку | `moderate` | 2D, 3D |
+| [`mute(user_id, seconds)`](#mute) | заглушить | `moderate` | 2D, 3D |
+| [`tip(user_id, gold_bar)`](#tip) | чаевые золотом бота | `tip` | 2D, 3D |
 | [`buy_item(item_id)`](#buy_item) | купить предмет за золото бота | `shop` | 2D, 3D |
 | [`conversations(not_joined, last_id)`](#conversations) | личные диалоги бота | `info` | 2D, 3D |
 | [`messages(conversation_id, last_message_id)`](#messages) | сообщения диалога | `info` | 2D, 3D |
@@ -143,11 +144,10 @@ async def emote(self, emote_id: str, *, target_user_id: str | None = None) -> No
 | Параметр | Описание |
 |---|---|
 | `emote_id` | идентификатор эмоции, например `"emote-wave"` |
-| `target_user_id` | на кого направить; `None` — ни на кого. В 3D-мире эмоцию на человека направить нельзя: указанный адресат даёт отказ |
+| `target_user_id` | на кого направить; `None` — ни на кого. Адресат должен быть в комнате (в 3D тоже); как и в 2D, эмоция его в событии не передаёт |
 
 `ResponseError` — такой эмоции нет, она парная, платная при отсутствии PREMIUM у
-владельца, указан адресат в 3D-мире или комната 3D на сервере, который ещё не умеет
-эмоции ботов.
+владельца, или адресата нет в комнате.
 
 ### `react`
 
@@ -158,8 +158,7 @@ async def react(self, reaction: Reaction, target_user_id: str) -> None
 Отправить человеку реакцию: `"clap"` (аплодисменты), `"heart"` (сердце), `"thumbs"`
 (палец вверх), `"wave"` (приветствие), `"wink"` (подмигивание).
 
-`InvalidArgument` — неизвестная реакция. `ResponseError` — адресата нет в комнате или
-комната 3D.
+`InvalidArgument` — неизвестная реакция. `ResponseError` — адресата нет в комнате.
 
 ```python
 await self.api.react("heart", user.id)
@@ -207,7 +206,8 @@ class Follower(Bot):
             await self.api.sit_on(position)
 ```
 
-`ResponseError` — места нет, оно занято или комната 3D.
+`ResponseError` — места нет или оно занято. В 3D-мире бот сначала идёт к месту: если мир не
+посадил его за 8 секунд, это отказ «The bot could not reach that seat», и бот стоит там, где стоял.
 
 ### `teleport_user`
 
@@ -286,7 +286,7 @@ async def moderate(self, user_id: str, action: ModerationAction, *, seconds: int
 | `seconds` | срок блокировки или заглушки, от 0 до 2 592 000 (30 суток); `None` — срок не задан, решает сервер |
 
 `InvalidArgument` — неизвестное действие или срок вне диапазона. `ResponseError` — нет
-прав модератора, цель защищена или комната 3D. Ниже — короткие формы.
+прав модератора или цель защищена. Ниже — короткие формы.
 
 ### `kick`
 

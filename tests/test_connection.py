@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import asyncio
+import socket
 import time
 from collections.abc import Callable
 
 import pytest
+from aiohttp import web
 from aiohttp.test_utils import TestServer
 
 from fake_gateway import FakeGateway
@@ -387,6 +389,82 @@ def test_a_bot_is_not_connected_while_it_waits_to_reconnect() -> None:
             assert bot.session == first_session  # последняя известная сессия остаётся для уже стоящих в очереди событий
             await wait_until(lambda: bot.started == 2)
             assert bot.connected
+            await bot.stop()
+            await asyncio.wait_for(task, 5)
+
+    asyncio.run(scenario())
+
+
+def free_port() -> int:
+    with socket.socket() as probe:
+        probe.bind(("127.0.0.1", 0))
+        return int(probe.getsockname()[1])
+
+
+async def serve_on(gateway: FakeGateway, port: int) -> web.AppRunner:
+    runner = web.AppRunner(gateway.app())
+    await runner.setup()
+    await web.TCPSite(runner, "127.0.0.1", port).start()
+    return runner
+
+
+def test_a_restarted_server_is_rejoined_by_the_bot() -> None:
+    """The server restarts on the same address (a deploy): the bot waits, then starts again."""
+
+    async def scenario() -> None:
+        gateway = FakeGateway()
+        port = free_port()
+        runner = await serve_on(gateway, port)
+        bot = Greeter()
+        task = asyncio.create_task(bot.run(token=TOKEN, room_id="room-9", url=f"ws://127.0.0.1:{port}/web/botapi"))
+        try:
+            await wait_until(lambda: bot.started == 1)
+            await runner.cleanup()  # the server goes down under the open socket
+            await asyncio.sleep(0.5)
+            runner = await serve_on(gateway, port)
+            await wait_until(lambda: bot.started == 2, timeout=15.0)
+        finally:
+            await bot.stop()
+            await asyncio.wait_for(task, 5)
+            await runner.cleanup()
+
+    asyncio.run(scenario())
+
+
+def test_a_silent_server_is_given_up_on_and_redialled() -> None:
+    """A host that vanished without a reset sends nothing; the bot notices and redials."""
+
+    async def scenario() -> None:
+        gateway = FakeGateway(freeze_first_connection=True)
+        async with TestServer(gateway.app()) as server:
+            engine = Engine(
+                url=str(server.make_url("/web/botapi")),
+                token=TOKEN,
+                room_id="room-9",
+                subscriptions=(),
+                on_session=noop_session,
+                on_event=noop_event,
+                keepalive_interval=0.05,
+            )
+            task = asyncio.create_task(engine.run())
+            await wait_until(lambda: gateway.connections >= 2, timeout=15.0)
+            await engine.stop()
+            await asyncio.wait_for(task, 15)
+
+    asyncio.run(scenario())
+
+
+def test_a_missing_route_during_a_rollout_is_retried_not_final() -> None:
+    """A 404 can come from a route that is absent for a moment; only a 401 or 403 is final."""
+
+    async def scenario() -> None:
+        gateway = FakeGateway(refuse_status=404)
+        async with TestServer(gateway.app()) as server:
+            bot = Greeter()
+            task = asyncio.create_task(bot.run(token=TOKEN, room_id="room-9", url=str(server.make_url("/web/botapi"))))
+            await wait_until(lambda: gateway.connections >= 2)
+            gateway.refuse_status = None
+            await wait_until(lambda: bot.started == 1, timeout=15.0)
             await bot.stop()
             await asyncio.wait_for(task, 5)
 

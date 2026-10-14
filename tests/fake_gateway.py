@@ -7,6 +7,7 @@ refuse a handshake, drop a connection, refuse a request, or go silent.
 
 from __future__ import annotations
 
+import asyncio
 import json
 from dataclasses import dataclass, field
 
@@ -38,6 +39,9 @@ class FakeGateway:
     error_for: dict[str, str] = field(default_factory=dict[str, str])
     # Close the first connection right after its session, to force a reconnect.
     drop_first_connection: bool = False
+    # Keep the first connection open but send and answer nothing after its session: a host
+    # that vanished without a reset.
+    freeze_first_connection: bool = False
     # Never answer a request (to test timeouts).
     silent: bool = False
 
@@ -84,6 +88,9 @@ class FakeGateway:
         if self.drop_first_connection and self.connections == 1:
             await ws.close()
             return ws
+        if self.freeze_first_connection and self.connections == 1:
+            await asyncio.sleep(3600)
+            return ws
         async for message in ws:
             if message.type is not WSMsgType.TEXT:
                 continue
@@ -95,6 +102,10 @@ class FakeGateway:
     async def _answer(self, ws: web.WebSocketResponse, frame: dict[str, object]) -> None:
         kind = frame.get("_type")
         rid = frame.get("rid")
+        if kind == "KeepaliveRequest":
+            # The real gateway answers every keepalive; the SDK counts any inbound frame as life.
+            await ws.send_str(json.dumps({"_type": "KeepaliveResponse"}))
+            return
         if not isinstance(kind, str) or rid is None or self.silent:
             return
         if kind in self.error_for:

@@ -49,12 +49,17 @@ from .protocol import (
     wants_no_reconnect,
 )
 
-DEFAULT_URL = "wss://sukarise.ru/web/botapi"
+DEFAULT_URL = "wss://production-portal-refb.sukarise.ru/web/botapi"
 """Адрес шлюза ботов по умолчанию. Переопределяется аргументом ``url`` или переменной ``SUKARISEBOT_URL``."""
 
 _MAX_FRAME_BYTES = 256 * 1024
 _KEEPALIVE_FRAME = encode("KeepaliveRequest", None, {})
-_FATAL_STATUSES = frozenset((400, 401, 403, 404))
+# 404 is not final: a route can be missing for a moment while a release is switched.
+_FATAL_STATUSES = frozenset((400, 401, 403))
+# A server that sends nothing for this many keepalive intervals is gone, even when the TCP
+# connection looks open (a host that vanished without a reset). The server answers every
+# keepalive, so a live connection is never silent this long.
+_SILENT_INTERVALS = 3
 _STABLE_AFTER_SECONDS = 30.0
 _BACKOFF_CAP_EXPONENT = 16
 
@@ -158,6 +163,7 @@ class Engine:
         self._rids = count(1)
         self._limiter = Limiter({})
         self._ws: aiohttp.ClientWebSocketResponse | None = None
+        self._last_inbound = time.monotonic()
         self._session: SessionMetadata | None = None
         self.dropped_events = 0
         """Сколько событий отброшено из-за переполненной очереди."""
@@ -271,10 +277,12 @@ class Engine:
         ) as ws:
             self._ws = ws
             self.connections += 1
+            self._last_inbound = time.monotonic()
             keepalive = asyncio.create_task(self._keepalive(ws))
             try:
                 await self._handshake(ws)
                 async for message in ws:
+                    self._last_inbound = time.monotonic()
                     if message.type is aiohttp.WSMsgType.TEXT:
                         self._on_frame(str(message.data))
                     elif message.type is aiohttp.WSMsgType.ERROR:
@@ -307,6 +315,11 @@ class Engine:
             try:
                 await ws.send_str(_KEEPALIVE_FRAME)
             except (aiohttp.ClientError, ConnectionError):
+                return
+            if time.monotonic() - self._last_inbound > self._keepalive_interval * _SILENT_INTERVALS:
+                # Closing ends the reader, so run() redials with the usual backoff.
+                log.warning("сервер молчит дольше %.0f с; переподключаемся", self._keepalive_interval * _SILENT_INTERVALS)
+                await ws.close()
                 return
 
     def _on_frame(self, text: str) -> None:

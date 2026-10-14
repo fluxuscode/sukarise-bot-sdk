@@ -24,7 +24,7 @@ SukaRiseError
 | Исключение | Атрибуты | Когда возникает | Что делать |
 |---|---|---|---|
 | `InvalidArgument` | — | пустой текст, неизвестная реакция/слиток/действие, координата вне ±1000, наряд нарушает правила, неверное имя команды. **Запрос не отправлялся.** | Исправить вызов в своём коде. Это ошибка программиста, а не сбой связи. |
-| `ResponseError` | `message` | Сервер отказал в запросе: нет прав, человека нет в комнате, действие не поддерживается в 3D, лимит частоты. Соединение при этом работает. | Прочитать `error.message`, при необходимости ответить игроку. Таблица ниже. |
+| `ResponseError` | `message` | Сервер отказал в запросе: нет прав, человека нет в комнате, действие не поддерживается сервером, лимит частоты. Соединение при этом работает. | Прочитать `error.message`, при необходимости ответить игроку. Таблица ниже. |
 | `RequestTimeout` | — | Сервер не ответил за 10 секунд. Запрос мог выполниться. | Если действие нельзя повторять вслепую (чаевые, покупка), сначала проверьте результат (`await api.gold()`). |
 | `NotConnected` | — | `bot.api` вне работающего бота; запрос во время переподключения; обрыв посреди запроса. | Дождаться подключения; в таймерах проверять `self.connected`. |
 | `ConnectionRefused` | `message`, `do_not_reconnect` | Сервер не принял подключение или оборвал сессию. Выходит из `run`/`start`. | Таблица «Отказы при подключении» ниже. |
@@ -110,8 +110,12 @@ HTTP-ответах.
 | `The bot cannot walk there` / `The destination is not on the floor of this room` / `The destination is not a point in the room` | Точка для `move_to` или `teleport_user` недоступна. |
 | `That seat is not in this room` | Места для `sit_on` нет. |
 | `Teleporting a user needs moderator rights in the room` | Для телепорта нужны права модератора. |
-| `Reactions is not available in 3D rooms yet` (и так же для Sitting, Teleporting, Tipping, Moderation from bots) | Действие доступно только в 2D-комнатах. |
-| `An emote aimed at a user is not available in 3D rooms yet` | В 3D-мире эмоцию нельзя направить на человека; играйте её без адресата. На сервере, который ещё не обновлён, так отказывает любая эмоция: `Emotes is not available in 3D rooms yet`. |
+| `That seat is taken` | Место занято человеком или другим ботом. | Выберите другое место. | — |
+| `The bot is already sitting` | Бот уже сидит на месте. | Сначала встаньте, пойдя куда-нибудь (`move_to`). | — |
+| `The bot could not reach that seat` | В 3D-мире бот не дошёл до места за 8 секунд и остался стоять. | Выберите другое место или точку ближе к нему. | — |
+| `The bot sat on another seat, and that one is not reachable` | В 3D-мире мир посадил бота на другое место, а выбранное недостижимо. | Бот теперь сидит на другом месте. | — |
+| `That user was moved a moment ago` | В 3D-мире человека можно переместить не чаще раза в 0,6 с. | Повторите через секунду. | — |
+| `The bot is not in this room` | Бот ещё не вошёл в мир или уже вышел из него. | Дождитесь входа бота. | — |
 | `The emote is unknown` / `The bot cannot perform that emote` | Такой эмоции нет или бот не может её сыграть (платная без PREMIUM у владельца). |
 | `This emote needs a partner, and a bot cannot give one yet` | Парные эмоции ботам недоступны. |
 | `Unknown reaction` | Неизвестная реакция. |

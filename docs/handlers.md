@@ -31,22 +31,22 @@ class Greeter(Bot):
 | [`on_start(session)`](#on_start) | бот вошёл в комнату; снова после каждого переподключения | `SessionMetadata` | — | да |
 | [`on_chat(user, message)`](#on_chat) | реплика в общем чате | `ChatEvent` | `chat` | да |
 | [`on_whisper(user, message)`](#on_whisper) | шёпот, адресованный боту | `ChatEvent` | `chat` | да |
-| [`on_emote(user, emote_id, receiver)`](#on_emote) | кто-то сыграл эмоцию | `EmoteEvent` | `emote` | нет |
+| [`on_emote(user, emote_id, receiver)`](#on_emote) | кто-то сыграл эмоцию | `EmoteEvent` | `emote` | да |
 | [`on_reaction(user, reaction, receiver)`](#on_reaction) | один игрок отправил реакцию другому | `ReactionEvent` | `reaction` | нет |
 | [`on_user_join(user, position)`](#on_user_join) | кто-то вошёл в комнату | `UserJoinedEvent` | `user_joined` | да |
 | [`on_user_leave(user)`](#on_user_leave) | кто-то вышел | `UserLeftEvent` | `user_left` | да |
-| [`on_user_move(user, position)`](#on_user_move) | кто-то пошёл или сел | `UserMovedEvent` | `user_moved` | нет |
+| [`on_user_move(user, position)`](#on_user_move) | кто-то пошёл или сел (в 3D — пошёл) | `UserMovedEvent` | `user_moved` | да |
 | [`on_channel(sender_id, message, tags)`](#on_channel) | скрытое сообщение от другого бота | `ChannelEvent` | `channel` | да |
-| [`on_moderate(moderator_id, target_user_id, moderation_type, duration)`](#on_moderate) | модерация в комнате | `ModerationEvent` | `moderation` | нет |
-| [`on_tip(sender, receiver, item)`](#on_tip) | чаевые в комнате | `TipEvent` | `tip_reaction` | нет |
+| [`on_moderate(moderator_id, target_user_id, moderation_type, duration)`](#on_moderate) | модерация в комнате | `ModerationEvent` | `moderation` | да |
+| [`on_tip(sender, receiver, item)`](#on_tip) | чаевые в комнате | `TipEvent` | `tip_reaction` | да |
 | [`on_message(user_id, conversation_id, is_new_conversation)`](#on_message) | человек написал боту личное сообщение | `MessageEvent` | `message` | да |
 | [`on_error(error, event)`](#on_error) | обработчик, команда или таймер упали | — | — | — |
 
-В 3D-комнате боту приходят только события, отмеченные в последней колонке словом «да»:
-чат и шёпот, вход и выход людей, скрытые сообщения других ботов и личные сообщения.
-Перемещения, эмоции, реакции, чаевые и модерация в 3D до бота не доходят, поэтому
-положение людей там можно узнать только запросом `list_room_users()` (или
-`await self.refresh_room()`).
+В 3D-комнате боту приходят события, отмеченные в последней колонке словом «да»: чат и
+шёпот, вход и выход людей, ходьба и эмоции людей, модерация, скрытые сообщения других ботов
+и личные сообщения. Реакции людей в 3D до бота не доходят: 3D-клиент их не
+отправляет. Чаевые людей доходят и в 3D. Положение людей бот узнаёт из событий ходьбы и запросом `list_room_users()`
+(или `await self.refresh_room()`).
 
 ## Каждый обработчик подробно
 

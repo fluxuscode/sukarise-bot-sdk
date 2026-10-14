@@ -10,7 +10,7 @@
 
 ## Подключение
 
-Бот открывает **websocket** по адресу шлюза (по умолчанию `wss://sukarise.ru/web/botapi`,
+Бот открывает **websocket** по адресу шлюза (по умолчанию `wss://production-portal-refb.sukarise.ru/web/botapi`,
 переопределяется аргументом `url` или переменной `SUKARISEBOT_URL`). Метод — `GET` с
 обновлением до websocket.
 

@@ -15,8 +15,7 @@
 ## Шаг 1. Установите SDK
 
 ```bash
-git clone <адрес репозитория SukaRiseBot>
-cd sukarisebot
+gh release download v0.2.0 --repo fluxuscode/sukarise-bot-sdk --pattern "sukarisebot-0.2.0-py3-none-any.whl"
 python -m venv .venv
 ```
 
@@ -26,8 +25,10 @@ python -m venv .venv
 # Linux и macOS
 source .venv/bin/activate
 # Windows (PowerShell): .venv\Scripts\Activate.ps1
-pip install -e .
+pip install sukarisebot-0.2.0-py3-none-any.whl
 ```
+
+Репозиторий закрытый: релиз скачивает участник с доступом (`gh auth login`).
 
 Единственная зависимость — `aiohttp`; она подтянется сама. Проверка:
 

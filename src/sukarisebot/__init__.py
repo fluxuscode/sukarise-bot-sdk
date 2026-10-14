@@ -78,7 +78,7 @@ from .room import Room
 from .storage import JsonStore, JsonValue
 from .testing import Harness, RecordingRequester, Sent
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 """Версия SDK."""
 
 __all__ = [
