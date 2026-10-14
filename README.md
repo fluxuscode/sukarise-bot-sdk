@@ -55,7 +55,6 @@ pip install sukarisebot-0.2.0-py3-none-any.whl
 ```
 
 Или прямо из репозитория по тегу: `pip install "sukarisebot @ git+https://github.com/fluxuscode/sukarise-bot-sdk.git@v0.2.0"`.
-Репозиторий закрытый: и релиз, и тег доступны только с доступом на GitHub (`gh auth login`).
 
 ## Быстрый старт
 
