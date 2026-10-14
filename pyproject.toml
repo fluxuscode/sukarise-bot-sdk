@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=75", "wheel"]
+requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -8,7 +8,7 @@ version = "0.2.0"
 description = "Асинхронный типизированный Python SDK для ботов SukaRise."
 readme = "README.md"
 requires-python = ">=3.13"
-license = { text = "Proprietary" }
+license = "LicenseRef-Proprietary"
 keywords = ["sukarise", "bot", "asyncio", "websocket", "sdk"]
 classifiers = [
     "Development Status :: 4 - Beta",
