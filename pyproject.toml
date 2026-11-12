@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sukarisebot"
-version = "0.2.0"
-description = "Асинхронный типизированный Python SDK для ботов SukaRise."
+version = "0.3.0"
+description = "Asynchronous, fully typed Python SDK for SukaRise bots."
 readme = "README.md"
 requires-python = ">=3.13"
 license = "LicenseRef-Proprietary"
@@ -14,14 +14,23 @@ classifiers = [
     "Development Status :: 4 - Beta",
     "Framework :: AsyncIO",
     "Intended Audience :: Developers",
+    "Natural Language :: English",
+    "Natural Language :: Portuguese (Brazilian)",
     "Natural Language :: Russian",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Typing :: Typed",
 ]
 dependencies = ["aiohttp>=3.13,<4"]
 
 [project.optional-dependencies]
-test = ["pytest>=9", "mypy>=1.15", "pyright>=1.1.400"]
+test = ["pytest>=9", "mypy>=1.15", "pyright>=1.1.400", "ruff>=0.8"]
+
+[project.urls]
+Homepage = "https://github.com/fluxuscode/sukarise-bot-sdk"
+Documentation = "https://github.com/fluxuscode/sukarise-bot-sdk#documentation"
+Changelog = "https://github.com/fluxuscode/sukarise-bot-sdk/blob/main/CHANGELOG.md"
+Issues = "https://github.com/fluxuscode/sukarise-bot-sdk/issues"
 
 [project.scripts]
 sukarisebot = "sukarisebot.cli:main"
@@ -46,3 +55,24 @@ files = ["src", "examples"]
 include = ["src", "examples"]
 pythonVersion = "3.13"
 typeCheckingMode = "strict"
+
+[tool.ruff]
+line-length = 140
+target-version = "py313"
+extend-exclude = [".venv"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF", "ASYNC"]
+# Docstrings and messages are Russian on purpose: the "ambiguous character" rules fire on Cyrillic.
+ignore = [
+    "RUF001", "RUF002", "RUF003",  # Cyrillic letters look like Latin ones
+    "ASYNC109",  # wait_for(timeout=...) mirrors asyncio's own signature on purpose
+    "ASYNC110",  # polling helpers in tests and the limiter's wait loop are deliberate
+    "SIM108",
+    "B008", "RUF009",  # frozen dataclass instances as defaults are immutable
+    "RUF036",  # JsonValue reads best as None | bool | ...
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["E501"]
+"examples/fluxus_bot.py" = ["E501"]  # long Russian strings of the big example

@@ -10,8 +10,8 @@ from collections.abc import Callable
 import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestServer
-
 from fake_gateway import FakeGateway
+
 from sukarisebot import (
     Bot,
     ChatEvent,
@@ -95,7 +95,7 @@ def test_a_bot_seeds_its_room_and_greets_on_connect() -> None:
             await wait_until(lambda: any(frame.get("_type") == "ChatRequest" for frame in gateway.requests))
             assert bot.room.seeded
             assert bot.room.find("@ALICE") is not None
-            assert gateway.handshakes[0].query == "events=chat,user_joined"
+            assert gateway.handshakes[0].query == "events=chat,user_joined,user_left"
             await bot.stop()
             await asyncio.wait_for(task, 5)
 

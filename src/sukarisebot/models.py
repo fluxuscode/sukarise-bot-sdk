@@ -20,7 +20,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal, Union
+from typing import Literal
 
 Facing = Literal["FrontRight", "FrontLeft", "BackRight", "BackLeft"]
 """Куда смотрит персонаж: одно из четырёх изометрических направлений."""
@@ -132,7 +132,7 @@ class AnchorPosition:
     """Номер места на предмете мебели, от 0 до 255."""
 
 
-Location = Union[Position, AnchorPosition]
+Location = Position | AnchorPosition
 """Где находится пользователь: точка на полу (:class:`Position`) или место на мебели (:class:`AnchorPosition`).
 
 Различайте их через ``isinstance`` или ``match``::
@@ -506,18 +506,18 @@ class ModerationEvent:
     """Длительность в секундах или ``None``, если срок не задан."""
 
 
-Event = Union[
-    ChatEvent,
-    EmoteEvent,
-    ReactionEvent,
-    UserJoinedEvent,
-    UserLeftEvent,
-    UserMovedEvent,
-    ChannelEvent,
-    ModerationEvent,
-    TipEvent,
-    MessageEvent,
-]
+Event = (
+    ChatEvent
+    | EmoteEvent
+    | ReactionEvent
+    | UserJoinedEvent
+    | UserLeftEvent
+    | UserMovedEvent
+    | ChannelEvent
+    | ModerationEvent
+    | TipEvent
+    | MessageEvent
+)
 """Любое событие, которое SDK доставляет боту.
 
 Используется в подсказках типов (``wait_for``, ``on_error``) и удобен для

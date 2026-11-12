@@ -16,7 +16,6 @@ from collections.abc import Iterable, Sequence
 from . import protocol
 from .engine import Requester
 from .errors import InvalidArgument
-from .outfit import outfit_problems
 from .models import (
     FACINGS,
     GOLD_BARS,
@@ -34,6 +33,7 @@ from .models import (
     RoomPermissions,
     RoomUser,
 )
+from .outfit import outfit_problems
 
 CHAT_LIMIT = 500
 """Наибольшая длина одной реплики чата в символах; длиннее — режется на части."""
@@ -46,7 +46,19 @@ CHANNEL_BYTES = 1024
 CHANNEL_TAGS = 10
 """Наибольшее число меток у сообщения канала."""
 CHANNEL_TAG_LENGTH = 32
-"""Наибольшая длина одной метки в символах."""
+"""Наибольшая длина одной метки в байтах (UTF-8): сервер считает байты, а не символы."""
+EMOTE_ID_LENGTH = 96
+"""Наибольшая длина идентификатора эмоции в байтах."""
+ANCHOR_ENTITY_LENGTH = 128
+"""Наибольшая длина идентификатора мебели в :meth:`BotAPI.sit_on` в байтах."""
+ANCHOR_INDEX_MAX = 255
+"""Наибольший номер места на предмете мебели (допустимы 0…255)."""
+ITEM_ID_LENGTH = 256
+"""Наибольшая длина идентификатора предмета в :meth:`BotAPI.buy_item` в байтах."""
+CONVERSATION_ID_LENGTH = 128
+"""Наибольшая длина идентификатора диалога в байтах."""
+OUTFIT_ITEMS = 64
+"""Наибольшее число предметов в наряде (:meth:`BotAPI.wear`)."""
 CHANNEL_RECIPIENTS = 50
 """Наибольшее число адресатов у сообщения канала."""
 COORDINATE_LIMIT = 1000.0
@@ -84,6 +96,13 @@ def split_message(text: str, limit: int = CHAT_LIMIT) -> list[str]:
 def _non_empty(value: str, what: str) -> str:
     if not value.strip():
         raise InvalidArgument(f"{what}: значение не может быть пустым")
+    return value
+
+
+def _bounded(value: str, what: str, limit: int) -> str:
+    """Непустое значение не длиннее ``limit`` байт (так сервер считает идентификаторы)."""
+    if len(_non_empty(value, what).encode()) > limit:
+        raise InvalidArgument(f"{what}: длиннее {limit} байт")
     return value
 
 
@@ -190,7 +209,8 @@ class BotAPI:
         Запрос ``ChannelRequest``, категория лимита ``channel``. Комнаты: 2D и 3D.
 
         :param message: текст, не больше 1024 байт в UTF-8.
-        :param tags: метки (до 10 штук по 32 символа), по ним получатели отбирают сообщения.
+        :param tags: метки (до 10 штук, каждая не длиннее 32 байт в UTF-8: кириллическая
+            буква занимает два байта), по ним получатели отбирают сообщения.
         :param only_to: идентификаторы ботов-адресатов (до 50); ``None`` — всем ботам комнаты.
         :raises InvalidArgument: текст пуст или слишком велик, меток или адресатов слишком много.
         :raises ResponseError: сервер отказал.
@@ -201,8 +221,8 @@ class BotAPI:
         if len(text.encode()) > CHANNEL_BYTES:
             raise InvalidArgument(f"сообщение канала длиннее {CHANNEL_BYTES} байт")
         tag_list = list(tags)
-        if len(tag_list) > CHANNEL_TAGS or any(len(tag) > CHANNEL_TAG_LENGTH for tag in tag_list):
-            raise InvalidArgument(f"меток не больше {CHANNEL_TAGS}, длина метки не больше {CHANNEL_TAG_LENGTH} символов")
+        if len(tag_list) > CHANNEL_TAGS or any(len(tag.encode()) > CHANNEL_TAG_LENGTH for tag in tag_list):
+            raise InvalidArgument(f"меток не больше {CHANNEL_TAGS}, длина метки не больше {CHANNEL_TAG_LENGTH} байт")
         recipients = None if only_to is None else list(only_to)
         if recipients is not None and len(recipients) > CHANNEL_RECIPIENTS:
             raise InvalidArgument(f"адресатов не больше {CHANNEL_RECIPIENTS}")
@@ -224,7 +244,7 @@ class BotAPI:
 
         :param emote_id: идентификатор эмоции, например ``"emote-wave"``.
         :param target_user_id: на кого направлена эмоция; ``None`` — ни на кого.
-        :raises InvalidArgument: идентификатор эмоции пуст.
+        :raises InvalidArgument: идентификатор эмоции пуст или длиннее 96 байт.
         :raises ResponseError: эмоции нет, она парная или платная без PREMIUM у
             владельца, или адресата нет в комнате.
         :raises NotConnected: нет соединения.
@@ -233,7 +253,7 @@ class BotAPI:
         await self._requester.request(
             "EmoteRequest",
             "emote",
-            {"emote_id": _non_empty(emote_id, "ID эмоции"), "target_user_id": target_user_id},
+            {"emote_id": _bounded(emote_id, "ID эмоции", EMOTE_ID_LENGTH), "target_user_id": target_user_id},
         )
 
     async def react(self, reaction: Reaction, target_user_id: str) -> None:
@@ -285,15 +305,19 @@ class BotAPI:
         Запрос ``AnchorHitRequest``, категория лимита ``move``. Комнаты: 2D и 3D.
 
         :param anchor: предмет мебели и номер места на нём.
-        :raises InvalidArgument: пустой идентификатор предмета.
+        :raises InvalidArgument: пустой или слишком длинный (больше 128 байт) идентификатор
+            предмета либо номер места вне 0…255.
         :raises ResponseError: места нет или оно занято. В 3D-мире бот сначала идёт к месту; если за 8 секунд не дошёл, он стоит.
         :raises NotConnected: нет соединения.
         :raises RequestTimeout: сервер не ответил.
         """
+        entity_id = _bounded(anchor.entity_id, "ID предмета мебели", ANCHOR_ENTITY_LENGTH)
+        if isinstance(anchor.anchor_ix, bool) or not 0 <= anchor.anchor_ix <= ANCHOR_INDEX_MAX:
+            raise InvalidArgument(f"номер места на мебели должен быть целым от 0 до {ANCHOR_INDEX_MAX}")
         await self._requester.request(
             "AnchorHitRequest",
             "move",
-            {"anchor": {"entity_id": _non_empty(anchor.entity_id, "ID предмета мебели"), "anchor_ix": anchor.anchor_ix}},
+            {"anchor": {"entity_id": entity_id, "anchor_ix": anchor.anchor_ix}},
         )
 
     async def teleport_user(self, user_id: str, position: Position) -> None:
@@ -498,12 +522,14 @@ class BotAPI:
 
         :param item_id: идентификатор предмета из каталога.
         :returns: ``True`` — куплено, ``False`` — не хватило золота.
-        :raises InvalidArgument: пустой идентификатор.
+        :raises InvalidArgument: пустой или слишком длинный (больше 256 байт) идентификатор.
         :raises ResponseError: предмета нет в каталоге или магазин продаёт его не за золото.
         :raises NotConnected: нет соединения.
         :raises RequestTimeout: сервер не ответил.
         """
-        frame = await self._requester.request("BuyItemRequest", "shop", {"item_id": _non_empty(item_id, "ID предмета")})
+        frame = await self._requester.request(
+            "BuyItemRequest", "shop", {"item_id": _bounded(item_id, "ID предмета", ITEM_ID_LENGTH).strip()}
+        )
         return protocol.paid(frame)
 
     async def conversations(self, *, not_joined: bool = False, last_id: str | None = None) -> ConversationPage:
@@ -548,7 +574,7 @@ class BotAPI:
         frame = await self._requester.request(
             "GetMessagesRequest",
             "info",
-            {"conversation_id": _non_empty(conversation_id, "ID диалога"), "last_message_id": last_message_id},
+            {"conversation_id": _bounded(conversation_id, "ID диалога", CONVERSATION_ID_LENGTH), "last_message_id": last_message_id},
         )
         return protocol.messages(frame)
 
@@ -567,7 +593,7 @@ class BotAPI:
         :raises NotConnected: нет соединения.
         :raises RequestTimeout: сервер не ответил.
         """
-        _non_empty(conversation_id, "ID диалога")
+        _bounded(conversation_id, "ID диалога", CONVERSATION_ID_LENGTH)
         for chunk in split_message(_non_empty(content, "сообщение"), MESSAGE_LIMIT):
             await self._requester.request(
                 "SendMessageRequest",
@@ -618,7 +644,7 @@ class BotAPI:
         await self._requester.request(
             "LeaveConversationRequest",
             "message",
-            {"conversation_id": _non_empty(conversation_id, "ID диалога")},
+            {"conversation_id": _bounded(conversation_id, "ID диалога", CONVERSATION_ID_LENGTH)},
         )
 
     # ---- кошелёк, гардероб и инвентарь ------------------------------------------
@@ -697,13 +723,18 @@ class BotAPI:
         Запрос ``SetOutfitRequest``, категория лимита ``info``. Комнаты: 2D и 3D.
 
         :param items: полный наряд из одежды (``type == "clothing"``), от 1 до 64 предметов.
-        :raises InvalidArgument: наряд нарушает правила (причины перечислены в тексте ошибки).
+        :raises InvalidArgument: наряд нарушает правила (причины перечислены в тексте ошибки):
+            пуст, длиннее 64 предметов, содержит не одежду или повторы; а если по
+            идентификаторам видно, что части тела нет или тело не закрыто, и предметов с
+            неопределимой категорией (``bag-…``) на это не хватает, — и это.
         :raises ResponseError: у владельца бота нет активного PREMIUM или в наряде есть вещь,
             которой нет в каталоге.
         :raises NotConnected: нет соединения.
         :raises RequestTimeout: сервер не ответил.
         """
         problems = outfit_problems(items)
+        if len(items) > OUTFIT_ITEMS:
+            problems.insert(0, f"в наряде {len(items)} предметов, допускается не больше {OUTFIT_ITEMS}")
         if problems:
             raise InvalidArgument("; ".join(problems))
         await self._requester.request(

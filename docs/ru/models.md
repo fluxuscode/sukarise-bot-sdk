@@ -1,3 +1,5 @@
+[English](../en/models.md) | **Русский** | [Português (Brasil)](../pt-BR/models.md)
+
 # Модели данных
 
 Все данные, которые SDK передаёт вашему коду, — **неизменяемые dataclass'ы**
@@ -66,9 +68,9 @@ from sukarisebot import AnchorPosition, Location, Position
 def describe(location: Location) -> str:
     match location:
         case Position(x=x, z=z):
-            return f"стоит в точке ({x:.1f}, {z:.1f})"
+            return f"standing at ({x:.1f}, {z:.1f})"
         case AnchorPosition(entity_id=furniture, anchor_ix=place):
-            return f"сидит на {furniture}, место {place}"
+            return f"sitting on {furniture}, seat {place}"
 ```
 
 ### `RoomUser`

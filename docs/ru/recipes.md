@@ -1,8 +1,10 @@
+[English](../en/recipes.md) | **Русский** | [Português (Brasil)](../pt-BR/recipes.md)
+
 # Рецепты
 
 Готовые решения типичных задач. Каждый рецепт — законченный бот; его можно сохранить в
-файл и запустить (`python -m sukarisebot файл:Класс`). Ещё примеры лежат в каталоге
-[`examples/`](../examples/).
+файл и запустить (`python -m sukarisebot module:Class`). Ещё примеры лежат в каталоге
+[`examples/`](../../examples/).
 
 ## Приветствие с запоминанием
 
@@ -28,9 +30,9 @@ class Host(Bot):
     async def on_user_join(self, user: User, position: Location) -> None:
         visits = await self.store.update(user.id, count_visit)
         if visits == 1:
-            await self.api.chat(f"Добро пожаловать, {user.username}! Рады новому гостю.")
+            await self.api.chat(f"Welcome, {user.username}! Glad to see a new guest.")
         else:
-            await self.api.chat(f"С возвращением, {user.username}! Это ваш визит номер {visits}.")
+            await self.api.chat(f"Welcome back, {user.username}! This is your visit number {visits}.")
 ```
 
 ## Благодарность за чаевые боту
@@ -45,13 +47,13 @@ from sukarisebot import Bot, CurrencyItem, Item, User
 class Thanks(Bot):
     async def on_tip(self, sender: User, receiver: User, item: Item | CurrencyItem) -> None:
         if self.session is None or receiver.id != self.session.user_id:
-            return  # чаевые не боту
+            return  # not a tip for the bot
         if isinstance(item, CurrencyItem):
             total = await self.api.gold()
-            await self.api.chat(f"Спасибо, {sender.username}! Теперь у меня {total} золота.")
+            await self.api.chat(f"Thank you, {sender.username}! I now have {total} gold.")
 ```
 
-Более полная версия с таблицей лидеров — [`examples/tipping_bot.py`](../examples/tipping_bot.py).
+Более полная версия с таблицей лидеров — [`examples/tipping_bot.py`](../../examples/tipping_bot.py).
 
 ## Ответы на личные сообщения
 
@@ -64,15 +66,15 @@ from sukarisebot import Bot
 class Receptionist(Bot):
     async def on_message(self, user_id: str, conversation_id: str, is_new_conversation: bool) -> None:
         if is_new_conversation:
-            await self.api.send_message(conversation_id, "Здравствуйте! Я бот комнаты. Напишите «правила».")
+            await self.api.send_message(conversation_id, "Hello! I am the room's bot. Write 'rules'.")
             return
         messages = await self.api.messages(conversation_id)
         if not messages or messages[0].sender_id != user_id:
             return
-        if "правила" in messages[0].content.lower():
-            await self.api.send_message(conversation_id, "1. Будьте вежливы. 2. Без спама.")
+        if "rules" in messages[0].content.lower():
+            await self.api.send_message(conversation_id, "1. Be polite. 2. No spam.")
         else:
-            await self.api.send_message(conversation_id, "Не понял. Напишите «правила».")
+            await self.api.send_message(conversation_id, "I did not understand. Write 'rules'.")
 ```
 
 Помните: первым бот в диалог не пишет — начинает человек.
@@ -87,8 +89,8 @@ from collections import defaultdict, deque
 
 from sukarisebot import Bot, ResponseError, User
 
-LIMIT = 5  # сообщений
-WINDOW = 10.0  # секунд
+LIMIT = 5  # messages
+WINDOW = 10.0  # seconds
 
 
 class AntiSpam(Bot):
@@ -108,9 +110,9 @@ class AntiSpam(Bot):
             recent.clear()
             try:
                 await self.api.mute(user.id, 60)
-                await self.api.chat(f"{user.username}, пожалуйста, не спамьте. Минута тишины.")
+                await self.api.chat(f"{user.username}, please do not spam. A minute of silence.")
             except ResponseError as error:
-                await self.api.chat(f"Не могу заглушить: {error.message}")
+                await self.api.chat(f"I cannot mute: {error.message}")
 ```
 
 ## Копировать наряд игрока
@@ -123,17 +125,17 @@ from sukarisebot import Bot, Context, InvalidArgument, ResponseError, command
 
 
 class Mirror(Bot):
-    @command("copyme", cooldown=(1, 30.0), description="надеть мой наряд")
+    @command("copyme", cooldown=(1, 30.0), description="put on my outfit")
     async def copyme(self, ctx: Context) -> None:
         outfit = await ctx.api.outfit_of(ctx.user.id)
         try:
             await ctx.api.wear(outfit)
         except InvalidArgument as error:
-            await ctx.reply(f"Этот наряд надеть нельзя: {error}")
+            await ctx.reply(f"This outfit cannot be worn: {error}")
         except ResponseError as error:
-            await ctx.reply(f"Не получилось: {error.message}")
+            await ctx.reply(f"It did not work: {error.message}")
         else:
-            await ctx.reply("Готово!")
+            await ctx.reply("Done!")
 ```
 
 ## Бот-распорядитель: усаживает гостей
@@ -153,7 +155,7 @@ class Companion(Bot):
         try:
             await self.api.sit_on(neighbour)
         except ResponseError:
-            pass  # соседнего места нет или оно занято
+            pass  # there is no neighbouring seat or it is taken
 ```
 
 ## Объявление по расписанию
@@ -165,7 +167,7 @@ from sukarisebot import Bot, every
 class Herald(Bot):
     @every(600)
     async def rules(self) -> None:
-        await self.api.chat("Напоминание: в комнате действуют правила. Команды — !help.")
+        await self.api.chat("Reminder: the room has rules. Commands: !help.")
 ```
 
 ## Два бота в одной комнате договариваются
@@ -177,16 +179,16 @@ from sukarisebot import Bot, Context, command
 
 
 class Boss(Bot):
-    @command("alarm", owner_only=True, description="поднять тревогу у всех ботов")
+    @command("alarm", owner_only=True, description="raise the alarm for all the bots")
     async def alarm(self, ctx: Context) -> None:
         await self.api.channel("alarm", tags=["security"])
-        await ctx.reply("Сигнал отправлен.")
+        await ctx.reply("Signal sent.")
 
 
 class Worker(Bot):
     async def on_channel(self, sender_id: str, message: str, tags: tuple[str, ...]) -> None:
         if message == "alarm" and "security" in tags:
-            await self.api.chat("Тревога! Всем сохранять спокойствие.")
+            await self.api.chat("Alarm! Everyone stay calm.")
 ```
 
 Каждый из ботов запускается своим токеном (у каждого — свой процесс или своя задача).
@@ -199,12 +201,12 @@ from sukarisebot import Bot, Context, command
 
 
 class Fact(Bot):
-    @command("fact", cooldown=(1, 20.0), description="случайный факт")
+    @command("fact", cooldown=(1, 20.0), description="a random fact")
     async def fact(self, ctx: Context) -> None:
-        # Адрес вымышленный: подставьте свой сервис.
+        # The address is made up: put your own service here.
         async with self.http.get("https://example.com/api/fact") as response:
             if response.status != 200:
-                await ctx.reply("Сервис фактов недоступен.")
+                await ctx.reply("The fact service is unavailable.")
                 return
             await ctx.reply((await response.text())[:300])
 ```

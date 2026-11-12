@@ -44,11 +44,21 @@ class FakeGateway:
     freeze_first_connection: bool = False
     # Never answer a request (to test timeouts).
     silent: bool = False
+    # Request type -> how many more times to refuse it as over the rate limit, as the real
+    # gateway does ("Rate limit exceeded for chat requests"). The request is not executed.
+    rate_limit_refusals: dict[str, int] = field(default_factory=dict[str, int])
 
     def app(self) -> web.Application:
         application = web.Application()
         application.router.add_get("/web/botapi", self._socket)
+        application.on_shutdown.append(self._close_sockets)
         return application
+
+    async def _close_sockets(self, _application: web.Application) -> None:
+        # aiohttp waits shutdown_timeout (60 s) for open websockets before it drops them.
+        for ws in list(self.sockets):
+            if not ws.closed:
+                await ws.close()
 
     async def push(self, frame: dict[str, object]) -> None:
         """Send an event frame to every open connection."""
@@ -107,6 +117,11 @@ class FakeGateway:
             await ws.send_str(json.dumps({"_type": "KeepaliveResponse"}))
             return
         if not isinstance(kind, str) or rid is None or self.silent:
+            return
+        if self.rate_limit_refusals.get(kind, 0) > 0:
+            self.rate_limit_refusals[kind] -= 1
+            message = "Rate limit exceeded for chat requests"
+            await ws.send_str(json.dumps({"_type": "Error", "message": message, "rid": rid}))
             return
         if kind in self.error_for:
             await ws.send_str(json.dumps({"_type": "Error", "message": self.error_for[kind], "rid": rid}))

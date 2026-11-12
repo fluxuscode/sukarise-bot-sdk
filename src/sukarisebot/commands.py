@@ -16,6 +16,9 @@ from .api import BotAPI
 from .errors import InvalidArgument
 from .models import User
 
+_COOLDOWN_SWEEP_AT = 1024
+"""Сколько игроков с записями о вызовах команды копится, прежде чем устаревшие забываются."""
+
 
 @dataclass(frozen=True, slots=True)
 class Context:
@@ -166,6 +169,12 @@ class Command:
         if self.cooldown is None:
             return 0.0
         uses_allowed, window = self.cooldown
+        if len(self._uses) >= _COOLDOWN_SWEEP_AT:
+            # Игроки, чьи вызовы все старше окна, больше ничего не ограничивают: забываем их,
+            # иначе память растёт с каждым новым игроком за всё время работы бота.
+            self._uses = {
+                user: stamps for user, stamps in self._uses.items() if stamps and now - stamps[-1] < window
+            }
         uses = self._uses.setdefault(user_id, deque())
         while uses and now - uses[0] >= window:
             uses.popleft()
@@ -207,7 +216,7 @@ class Commands:
     """Реестр команд бота и их диспетчер.
 
     Создаётся самим :class:`Bot`; у бота он доступен только изнутри. Поведение
-    описано в ``docs/commands.md``.
+    описано в ``docs/ru/commands.md``.
     """
 
     def __init__(self, prefix: str = "!", phrases: Phrases | None = None) -> None:

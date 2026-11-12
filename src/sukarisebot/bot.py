@@ -33,11 +33,11 @@ from .engine import DEFAULT_URL, Engine, Requester
 from .errors import InvalidArgument, NotConnected
 from .models import (
     ChannelEvent,
-    CurrencyItem,
-    Item,
     ChatEvent,
+    CurrencyItem,
     EmoteEvent,
     Event,
+    Item,
     Location,
     MessageEvent,
     ModerationEvent,
@@ -118,8 +118,9 @@ class Bot:
     обработчика не останавливает бота: оно передаётся в :meth:`on_error`.
 
     **Подписки.** SDK просит у сервера только те события, для которых в классе
-    переопределён обработчик (плюс чат, нужный командам). Это относится и к
-    ``bot.room``: см. :class:`Room`.
+    переопределён обработчик, плюс чат (нужен командам) и, вне режима «чистой
+    комнаты», входы и выходы (нужны ``bot.room``). Перемещения людей приходят,
+    только если переопределён ``on_user_move``: см. :class:`Room`.
 
     :cvar phrases: фразы бота при работе с командами (отказ, «подождите», ``!help``).
     :ivar room: состав комнаты, который SDK ведёт по событиям.
@@ -345,7 +346,7 @@ class Bot:
             url=url or os.environ.get(ENV_URL) or DEFAULT_URL,
             token=resolved_token,
             room_id=resolved_room,
-            subscriptions=self._subscriptions(),
+            subscriptions=self._subscriptions(clean_room=clean_room),
             on_session=self._on_session,
             on_event=self._on_event,
             on_arrival=self._on_arrival,
@@ -445,8 +446,8 @@ class Bot:
     async def on_user_join(self, user: User, position: Location) -> None:
         """В комнату вошёл пользователь.
 
-        Если переопределены ещё ``on_user_leave`` и ``on_user_move``, ``bot.room``
-        отражает вход автоматически.
+        Входы и выходы ``bot.room`` отражает автоматически (кроме режима «чистой
+        комнаты»), даже если этот обработчик не переопределён.
 
         :param user: кто вошёл.
         :param position: где он появился: :class:`Position` или :class:`AnchorPosition`.
@@ -567,9 +568,13 @@ class Bot:
         self._session = session
         self._clean_room = clean_room
 
-    def _subscriptions(self) -> frozenset[str]:
+    def _subscriptions(self, *, clean_room: bool = False) -> frozenset[str]:
         cls = type(self)
         wanted = {"chat"}  # команды читают чат, поэтому подписка на чат включена всегда
+        if not clean_room:
+            # Входы и выходы редки, а без них ``bot.room`` врёт: сохраняем состав верным,
+            # даже если бот не переопределял ``on_user_join`` и ``on_user_leave``.
+            wanted.update(("user_joined", "user_left"))
         for method, subscription in _SUBSCRIPTION_OF.items():
             if getattr(cls, method) is not getattr(Bot, method):
                 wanted.add(subscription)

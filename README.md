@@ -1,9 +1,11 @@
+**English** | [Русский](README.ru.md) | [Português (Brasil)](README.pt-BR.md)
+
 # SukaRiseBot
 
-Асинхронный типизированный **Python SDK для ботов SukaRise**. Бот подключается к комнате
-по websocket, читает чат и события, ходит, говорит, модерирует, получает чаевые,
-отвечает на личные сообщения и ведёт хозяйство со своим кошельком. Всё это — обычным
-Python-кодом с подсказками редактора и строгими типами.
+An asynchronous, fully typed **Python SDK for SukaRise bots**. A bot joins a room over a
+websocket, reads the chat and the room's events, walks, talks, moderates, receives tips,
+answers direct messages and runs its own small economy with a wallet. All of it is plain
+Python with editor hints and strict types.
 
 ```python
 import random
@@ -13,56 +15,60 @@ from sukarisebot import Bot, Context, Location, User, command
 
 class Greeter(Bot):
     async def on_user_join(self, user: User, position: Location) -> None:
-        await self.api.chat(f"Добро пожаловать, {user.username}!")
+        await self.api.chat(f"Welcome, {user.username}!")
 
-    @command("roll", cooldown=(3, 60.0), description="бросить кубик")
+    @command("roll", cooldown=(3, 60.0), description="roll a die")
     async def roll(self, ctx: Context) -> None:
-        await ctx.reply(f"@{ctx.user.username} выбросил {random.randint(1, 6)}")
+        await ctx.reply(f"@{ctx.user.username} rolled {random.randint(1, 6)}")
 
 
 if __name__ == "__main__":
     Greeter().start()
 ```
 
-## Возможности
+## Features
 
-- **Чат и общение:** реплики, шёпот, скрытый канал между ботами.
-- **Движение:** ходьба, посадка на мебель, телепорт игроков (с правами модератора).
-- **Модерация:** `kick`, `ban`, `unban`, `mute`, чтение прав в комнате.
-- **Чаевые:** бот получает чаевые золотом на свой кошелёк, владелец забирает их в личном
-  кабинете; бот может и сам давать чаевые и покупать вещи за своё золото.
-- **Личные сообщения:** бот принимает и обрабатывает личные сообщения и отвечает на них.
-- **Внешность:** бот меняет наряд, может надеть наряд владельца по команде `myoutfit`.
-- **Команды, таймеры и диалоги:** `@command`, `@every`, `wait_for`.
-- **Данные между запусками:** `JsonStore` с атомарной записью.
-- **Тесты без сервера:** `Harness` проверяет бота в памяти.
-- **Строгие типы и подсказки:** `py.typed`, русские описания, `mypy --strict` и `pyright` в
-  режиме `strict`.
+- **Chat and talking:** public lines, whispers, a hidden channel between bots.
+- **Movement:** walking, sitting on furniture, teleporting players (with moderator rights).
+- **Moderation:** `kick`, `ban`, `unban`, `mute`, reading rights in the room.
+- **Tips:** the bot receives tips in gold into its own wallet and its owner collects them in
+  the personal cabinet; the bot can also tip people and buy items with its own gold.
+- **Direct messages:** the bot receives and handles direct messages and replies to them.
+- **Appearance:** the bot changes its outfit and can put on its owner's outfit on the `myoutfit` command.
+- **Commands, timers and dialogues:** `@command`, `@every`, `wait_for`.
+- **Data between runs:** `JsonStore` with atomic writes.
+- **Tests without a server:** `Harness` checks a bot in memory.
+- **Strict types and hints:** `py.typed`, a description for every public name, `mypy --strict`
+  and `pyright` in `strict` mode.
 
-## Требования
+## Requirements
 
-- Python **3.13** или новее;
-- аккаунт SukaRise с активной подпиской **PREMIUM** (владелец бота);
-- зависимость `aiohttp` устанавливается автоматически.
+- Python **3.13** or newer;
+- a SukaRise account with an active **PREMIUM** subscription (the bot's owner);
+- the `aiohttp` dependency is installed automatically.
 
-## Установка
+## Installation
+
+The repository is public: you need neither a GitHub account nor `gh`. The package is not on
+PyPI yet, so install it from the repository:
 
 ```bash
-gh release download v0.2.0 --repo fluxuscode/sukarise-bot-sdk --pattern "sukarisebot-0.2.0-py3-none-any.whl"
 python -m venv .venv
 source .venv/bin/activate        # Windows (PowerShell): .venv\Scripts\Activate.ps1
-pip install sukarisebot-0.2.0-py3-none-any.whl
+pip install "sukarisebot @ git+https://github.com/fluxuscode/sukarise-bot-sdk.git"
 ```
 
-Или прямо из репозитория по тегу: `pip install "sukarisebot @ git+https://github.com/fluxuscode/sukarise-bot-sdk.git@v0.2.0"`.
+To get a specific version, append `@v0.2.0` (a tag name) to the address, or download a `.whl`
+file from the [Releases](https://github.com/fluxuscode/sukarise-bot-sdk/releases) page and
+install it with `pip install file-name.whl`.
 
-## Быстрый старт
+## Quick start
 
-1. В личном кабинете SukaRise откройте раздел **«Боты»**, создайте бота и сохраните
-   токен (`srbot_…`) — он показывается один раз.
-2. В настройках своей комнаты найдите бота по имени и добавьте его в **дизайнеры**
-   (и в **модераторы**, если бот будет модерировать).
-3. Запустите бота, передав токен и ID комнаты:
+1. In the SukaRise personal cabinet open the **"Bots"** section, create a bot and save its
+   token (`srbot_…`): it is shown only once.
+2. In your room's settings find the bot by name and add it as a **designer** (and as a
+   **moderator** if the bot is going to moderate).
+3. Start the bot, passing the token and the room ID:
 
    ```bash
    export SUKARISEBOT_TOKEN="srbot_..."
@@ -70,63 +76,78 @@ pip install sukarisebot-0.2.0-py3-none-any.whl
    python examples/greeter.py
    ```
 
-Подробно, по шагам и с разбором ошибок — в **[«Быстром старте»](docs/quickstart.md)**.
+Step by step, with a troubleshooting table, it is in the **[Quick start](docs/en/quickstart.md)**.
 
-## Документация
+## Documentation
 
-| Страница | О чём |
+The documentation comes in three languages: [English](docs/en/README.md),
+[Русский](docs/ru/README.md), [Português (Brasil)](docs/pt-BR/README.md). The pages of the
+English version are listed below.
+
+| Page | What it covers |
 |---|---|
-| [Быстрый старт](docs/quickstart.md) | Установка, токен, права, первый запуск |
-| [Устройство SDK](docs/architecture.md) | Как всё работает внутри |
-| [Обработчики событий](docs/handlers.md) | Все `on_...` |
-| [Справочник `BotAPI`](docs/api.md) | Все действия бота |
-| [Команды, таймеры и диалоги](docs/commands.md) | `@command`, `@every`, `wait_for` |
-| [Модели данных](docs/models.md) | `User`, `Position`, события и др. |
-| [Ошибки и отказы](docs/errors.md) | Исключения и отказы сервера |
-| [Тестирование](docs/testing.md) | `Harness` |
-| [Инструменты](docs/tools.md) | Состав комнаты, `JsonStore`, `bot.http`, CLI |
-| [Рецепты](docs/recipes.md) | Готовые решения |
-| [Протокол](docs/protocol.md) | Кадры на уровне сети |
-| [Редакторы и подсказки](docs/editors.md) | PyCharm, VS Code, mypy, pyright |
-| [Частые вопросы](docs/faq.md) | Разбор проблем |
+| [Quick start](docs/en/quickstart.md) | Installation, token, rights, first run |
+| [How the SDK works](docs/en/architecture.md) | How everything works inside |
+| [Event handlers](docs/en/handlers.md) | All the `on_...` methods |
+| [`BotAPI` reference](docs/en/api.md) | All the bot's actions |
+| [Commands, timers and dialogues](docs/en/commands.md) | `@command`, `@every`, `wait_for` |
+| [Data models](docs/en/models.md) | `User`, `Position`, events and more |
+| [Errors and refusals](docs/en/errors.md) | Exceptions and server refusals |
+| [Testing](docs/en/testing.md) | `Harness` |
+| [Tools](docs/en/tools.md) | Room roster, `JsonStore`, `bot.http`, CLI |
+| [Recipes](docs/en/recipes.md) | Ready-made solutions |
+| [Protocol](docs/en/protocol.md) | Frames at the network level |
+| [Editors and hints](docs/en/editors.md) | PyCharm, VS Code, mypy, pyright |
+| [FAQ](docs/en/faq.md) | Troubleshooting |
 
-Примеры готовых ботов — в каталоге [`examples/`](examples/): приветствие, кубик с
-командами, викторина с ожиданием ответа, «чистая комната», благодарность за чаевые, журнал
-посещений и бот для сбора чаевых.
+Ready-made example bots are in the [`examples/`](examples/) directory: a greeter, a dice
+bot with commands, a quiz that waits for answers, a "clean room" bot, a thank-you for tips,
+a visit log and a tip-collecting bot. The history of changes is in [CHANGELOG.md](CHANGELOG.md).
 
-## Что работает и что нет
+## What works and what does not
 
-| Возможность | 2D-комнаты | 3D-комнаты |
+| Capability | 2D rooms | 3D rooms |
 |---|---|---|
-| Чат, шёпот, канал между ботами | да | да |
-| Вход и выход людей | да | да |
-| События перемещений людей, эмоций и реакций | да | ходьба и эмоции людей; реакции людей в 3D-клиенте не отправляются |
-| Ходьба (`move_to`) | да | да |
-| Эмоции | да | да |
-| Реакции, посадка на мебель | да | да |
-| Телепорт и модерация (нужны права модератора) | да | да |
-| Чаевые (получать и давать) | да | да |
-| Личные сообщения | да | да |
-| Кошелёк, гардероб, наряд, покупки за золото | да | да |
+| Chat, whispers, channel between bots | yes | yes |
+| People joining and leaving | yes | yes |
+| Events for people's movement, emotes and reactions | yes | people's walks and emotes; the 3D client does not send people's reactions |
+| Walking (`move_to`) | yes | yes |
+| Emotes | yes | yes |
+| Reactions, sitting on furniture | yes | yes |
+| Teleport and moderation (moderator rights needed) | yes | yes |
+| Tips (receiving and giving) | yes | yes |
+| Direct messages | yes | yes |
+| Wallet, wardrobe, outfit, purchases for gold | yes | yes |
 
-Недоступно ботам на сервере SukaRise: парные эмоции, смена прав в комнате
-(`set_privileges` всегда отказывает), голосовой чат, рюкзак, платные услуги комнаты,
-перенос людей в другую комнату, медиа-сообщения.
+Not available to bots on the SukaRise server: paired emotes, changing rights in a room
+(`set_privileges` always refuses), voice chat, the backpack, paid room services, moving people
+to another room, media messages.
 
-## Происхождение кода
+## Language of the texts in the SDK
 
-SDK `sukarisebot` создан по принципу clean-room design. Он написан самостоятельно под протокол
-SukaRise и не связан с Pocket Worlds и её проектом Highrise: не их продукт и не одобрен ими.
-Имена полей и формат кадров совпадают с официальным Python SDK Highrise, это сделано для переноса кода.
+The descriptions in the code (docstrings), the texts of the SDK's exceptions and the bot's
+default phrases (the refusal to a non-owner, "please wait", `!help`) are in Russian. The bot's
+phrases are replaced in one line: `Bot.phrases = Phrases(...)` (see
+[Commands, timers and dialogues](docs/en/commands.md)). Refusal texts from the server arrive in
+English and are passed on as they are.
 
-## Разработка
+## Origin of the code
+
+The `sukarisebot` SDK was made on the clean-room design principle. It was written independently
+for the SukaRise protocol and is not affiliated with Pocket Worlds or its Highrise project: it is
+not their product and is not endorsed by them. The field names and the frame format match the
+official Highrise Python SDK, which is done so that code can be ported.
+
+## Development
 
 ```bash
 pip install -e ".[test]"
-python -m pytest        # тесты на настоящем websocket-шлюзе-заглушке (tests/fake_gateway.py)
-python -m mypy          # строгая проверка типов
-python -m pyright       # строгая проверка типов
+python -m pytest        # tests run against a real websocket stand-in gateway (tests/fake_gateway.py)
+python -m ruff check .  # linter
+python -m mypy          # strict type check
+python -m pyright       # strict type check
 ```
 
-Тесты запускают и примеры из `examples/`, и участки кода из документации, поэтому
-документация не расходится с кодом.
+The tests also run the programs in `examples/` and the pieces of code from the documentation,
+so the documentation does not drift away from the code. They also keep the three languages of
+the documentation the same in structure: pages, headings, tables, links and code blocks.

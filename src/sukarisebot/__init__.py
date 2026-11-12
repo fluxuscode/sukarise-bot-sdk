@@ -34,6 +34,7 @@ from .errors import (
     InvalidArgument,
     NotConnected,
     ProtocolError,
+    RateLimited,
     RequestTimeout,
     ResponseError,
     SukaRiseError,
@@ -78,7 +79,7 @@ from .room import Room
 from .storage import JsonStore, JsonValue
 from .testing import Harness, RecordingRequester, Sent
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 """Версия SDK."""
 
 __all__ = [
@@ -124,11 +125,12 @@ __all__ = [
     "Position",
     "ProtocolError",
     "RateLimit",
+    "RateLimited",
     "Reaction",
     "ReactionEvent",
     "RecordingRequester",
-    "Requester",
     "RequestTimeout",
+    "Requester",
     "ResponseError",
     "Room",
     "RoomInfo",

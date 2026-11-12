@@ -10,7 +10,7 @@
         await harness.join("alice")
         assert harness.chats == ["Добро пожаловать, alice!"]
 
-Подробности — в ``docs/testing.md``.
+Подробности — в ``docs/ru/testing.md``.
 """
 
 # Модуль работает с внутренними (с подчёркиванием) членами других классов пакета.

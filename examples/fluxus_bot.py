@@ -1418,7 +1418,7 @@ class FluxusBot(Bot):
             return
         choices = [i for i in range(len(QUIZ)) if i not in self._quiz_recent] or list(range(len(QUIZ)))
         index = self.rng.choice(choices)
-        self._quiz_recent = (self._quiz_recent + [index])[-12:]
+        self._quiz_recent = [*self._quiz_recent, index][-12:]
         question, answers = QUIZ[index]
         self._quiz_seq += 1
         self._quiz = QuizRound(question, answers, 30, time.monotonic(), self._quiz_seq)

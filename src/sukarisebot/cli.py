@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import importlib
 import logging
+import os
 import sys
 from collections.abc import Sequence
 
@@ -51,9 +52,19 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--token", help="токен бота (или переменная SUKARISEBOT_TOKEN)")
     parser.add_argument("--url", help="адрес шлюза (или переменная SUKARISEBOT_URL)")
     parser.add_argument("--clean-room", action="store_true", help="не делать запросов, которых не просил код бота")
-    parser.add_argument("--log-level", default="INFO", help="DEBUG, INFO, WARNING или ERROR")
+    parser.add_argument(
+        "--log-level",
+        default="INFO",
+        type=str.upper,
+        choices=("DEBUG", "INFO", "WARNING", "ERROR"),
+        help="DEBUG, INFO, WARNING или ERROR",
+    )
     args = parser.parse_args(argv)
-    logging.basicConfig(level=args.log_level.upper(), format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    logging.basicConfig(level=args.log_level, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    # Скрипт ``sukarisebot`` кладёт в sys.path каталог со скриптом, а не текущий; ``python -m``
+    # кладёт текущий. Делаем одинаково, чтобы «модуль:Класс» находился в текущем каталоге.
+    if "" not in sys.path and os.getcwd() not in sys.path:
+        sys.path.insert(0, os.getcwd())
     try:
         bot = load_bot(args.bot)
     except (ImportError, InvalidArgument) as exc:

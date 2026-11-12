@@ -4,6 +4,10 @@
 заранее и с понятным текстом: нет части тела, две вещи одной категории или
 сочетание, не закрывающее тело. Принадлежность вещей не проверяется — её знает
 только сервер.
+
+Категорию SDK читает из идентификатора, а сервер — из типа предмета в каталоге.
+Идентификаторы ``bag-…`` бывают любого типа, поэтому SDK считает их «джокерами»
+и не отказывает наряду, в котором такие предметы могут восполнить недостающее.
 """
 
 from __future__ import annotations
@@ -28,6 +32,9 @@ COVERINGS: tuple[frozenset[str], ...] = (
     frozenset(("fullsuit",)),
 )
 """Сочетания категорий, закрывающие тело: рубашка с брюками, рубашка с юбкой, платье, комбинезон."""
+
+UNCLASSIFIED_PREFIX: str = "bag-"
+"""Префикс идентификаторов, по которым тип предмета определить нельзя: под ним бывают бровь, рубашка, брюки и др."""
 
 _CATEGORY = re.compile(r"^(body-flesh|eyebrow|eye|nose|mouth|shirt|pants|skirt|dress|fullsuit)(?:[-_]|$)")
 
@@ -72,8 +79,15 @@ def outfit_problems(items: Sequence[Item]) -> list[str]:
         if category is not None and count > 1:
             problems.append(f"два предмета категории {category}: каждая базовая категория допускается один раз")
     worn = {category for category in present if category is not None}
-    for part in sorted(BODY_PARTS - worn):
-        problems.append(f"не хватает части тела: {part}")
-    if not any(covering <= worn for covering in COVERINGS):
-        problems.append("тело не закрыто: наденьте рубашку и брюки, рубашку и юбку, платье или комбинезон")
+    missing_parts = sorted(BODY_PARTS - worn)
+    covered = any(covering <= worn for covering in COVERINGS)
+    # Сервер определяет категорию по типу из каталога, а префикс ``bag-`` может скрывать любую
+    # вещь (бровь, рубашку, брюки). Такие предметы SDK не классифицирует и не считает
+    # нарушением то, что они способны восполнить: ошибка остаётся, только если их не хватает.
+    unclassified = sum(1 for item in clothing if item.id.startswith(UNCLASSIFIED_PREFIX))
+    still_needed = 0 if covered else min(len(covering - worn) for covering in COVERINGS)
+    if unclassified < len(missing_parts) + still_needed:
+        problems.extend(f"не хватает части тела: {part}" for part in missing_parts)
+        if not covered:
+            problems.append("тело не закрыто: наденьте рубашку и брюки, рубашку и юбку, платье или комбинезон")
     return problems

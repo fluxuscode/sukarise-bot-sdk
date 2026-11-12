@@ -1,3 +1,5 @@
+[English](../en/testing.md) | **Русский** | [Português (Brasil)](../pt-BR/testing.md)
+
 # Тестирование без сервера
 
 `Harness` запускает бота **в памяти**: сети нет, ждать таймеры не нужно, комната
@@ -13,7 +15,7 @@ from sukarisebot.testing import Harness
 
 class Greeter(Bot):
     async def on_user_join(self, user: User, position: Location) -> None:
-        await self.api.chat(f"Добро пожаловать, {user.username}!")
+        await self.api.chat(f"Welcome, {user.username}!")
 
 
 def test_greeting() -> None:
@@ -21,7 +23,7 @@ def test_greeting() -> None:
         harness = Harness(Greeter())
         await harness.start()
         await harness.join("alice")
-        assert harness.chats == ["Добро пожаловать, alice!"]
+        assert harness.chats == ["Welcome, alice!"]
 
     asyncio.run(scenario())
 ```
@@ -121,9 +123,9 @@ class Tipper(Bot):
     @command("tipme")
     async def tipme(self, ctx: Context) -> None:
         if await self.api.tip(ctx.user.id, "gold_bar_10"):
-            await ctx.reply("Держите!")
+            await ctx.reply("Here you go!")
         else:
-            await ctx.reply("Золота не хватает.")
+            await ctx.reply("Not enough gold.")
 
 
 def test_a_poor_bot_says_so() -> None:
@@ -132,7 +134,7 @@ def test_a_poor_bot_says_so() -> None:
         harness.requester.tips_paid = False
         await harness.start()
         await harness.say("alice", "!tipme")
-        assert harness.chats == ["Золота не хватает."]
+        assert harness.chats == ["Not enough gold."]
 
     asyncio.run(scenario())
 
@@ -178,7 +180,7 @@ def test_tips_and_direct_messages() -> None:
                 "message_id": "m1",
                 "conversation_id": "c1",
                 "createdAt": None,
-                "content": "привет",
+                "content": "hello",
                 "sender_id": "user-ann",
                 "category": "text",
             }
@@ -189,7 +191,7 @@ def test_tips_and_direct_messages() -> None:
         await harness.emit(MessageEvent("user-ann", "c1", True))
         assert harness.chats == ["+10"]
         (reply,) = harness.requests("SendMessageRequest")
-        assert reply.body["content"] == "ПРИВЕТ"
+        assert reply.body["content"] == "HELLO"
 
     asyncio.run(scenario())
 ```
@@ -214,7 +216,7 @@ class Asker(Bot):
             lambda event: event.whisper and event.user.id == ctx.user.id,
             timeout=5,
         )
-        await ctx.reply(f"Вы ответили: {answer.message}")
+        await ctx.reply(f"You answered: {answer.message}")
 
 
 def test_a_dialog() -> None:
@@ -222,10 +224,10 @@ def test_a_dialog() -> None:
         harness = Harness(Asker())
         await harness.start()
         task = asyncio.create_task(harness.say("alice", "!ask"))
-        await asyncio.sleep(0)  # дать команде дойти до wait_for
+        await asyncio.sleep(0)  # let the command reach wait_for
         await harness.say("alice", "42", whisper=True)
         await task
-        assert harness.chats == ["Вы ответили: 42"]
+        assert harness.chats == ["You answered: 42"]
 
     asyncio.run(scenario())
 ```
@@ -245,7 +247,7 @@ from sukarisebot.testing import Harness
 class Herald(Bot):
     @every(300)
     async def announce(self) -> None:
-        await self.api.chat("Правила комнаты: будьте вежливы.")
+        await self.api.chat("Room rules: be polite.")
 
 
 def test_the_announcement() -> None:
@@ -254,7 +256,7 @@ def test_the_announcement() -> None:
         harness = Harness(bot)
         await harness.start()
         await bot.announce()
-        assert harness.chats == ["Правила комнаты: будьте вежливы."]
+        assert harness.chats == ["Room rules: be polite."]
 
     asyncio.run(scenario())
 ```

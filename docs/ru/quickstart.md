@@ -1,3 +1,5 @@
+[English](../en/quickstart.md) | **Русский** | [Português (Brasil)](../pt-BR/quickstart.md)
+
 # Быстрый старт
 
 За десять минут вы создадите бота в личном кабинете, дадите ему права в комнате и
@@ -14,21 +16,24 @@
 
 ## Шаг 1. Установите SDK
 
+Создайте и активируйте виртуальное окружение:
+
 ```bash
-gh release download v0.2.0 --repo fluxuscode/sukarise-bot-sdk --pattern "sukarisebot-0.2.0-py3-none-any.whl"
 python -m venv .venv
-```
-
-Активируйте окружение и установите пакет:
-
-```bash
-# Linux и macOS
+# Linux and macOS
 source .venv/bin/activate
 # Windows (PowerShell): .venv\Scripts\Activate.ps1
-pip install sukarisebot-0.2.0-py3-none-any.whl
 ```
 
-Репозиторий закрытый: релиз скачивает участник с доступом (`gh auth login`).
+Установите пакет из репозитория (он открытый, учётная запись GitHub не нужна):
+
+```bash
+pip install "sukarisebot @ git+https://github.com/fluxuscode/sukarise-bot-sdk.git"
+```
+
+Нужна определённая версия: добавьте к адресу `@v0.2.0` (имя тега) либо скачайте файл `.whl` со
+страницы [Releases](https://github.com/fluxuscode/sukarise-bot-sdk/releases) и установите его
+командой `pip install имя-файла.whl`. В PyPI пакета пока нет.
 
 Единственная зависимость — `aiohttp`; она подтянется сама. Проверка:
 
@@ -87,7 +92,7 @@ from sukarisebot import Bot, Location, User
 
 class Greeter(Bot):
     async def on_user_join(self, user: User, position: Location) -> None:
-        await self.api.chat(f"Добро пожаловать, {user.username}!")
+        await self.api.chat(f"Welcome, {user.username}!")
 
 
 if __name__ == "__main__":
@@ -125,8 +130,8 @@ python greeter.py
 (например, для тестового сервера). Токен, комнату и адрес можно также передать
 аргументами: `Greeter().start(token="…", room_id="…", url="…")`.
 
-Бот появится в комнате как игрок с флагом бота и значком бота, под именем, которое
-вы ему дали, и поздоровается с каждым, кто войдёт. Остановить его можно через `Ctrl+C`.
+Бот появится в комнате как игрок с флагом бота, под именем, которое вы ему дали, и
+поздоровается с каждым, кто войдёт. Остановить его можно через `Ctrl+C`.
 
 Бота можно запустить и без собственного скрипта запуска — командой:
 
@@ -134,7 +139,8 @@ python greeter.py
 python -m sukarisebot greeter:Greeter --room room-... --token srbot_...
 ```
 
-(`greeter:Greeter` — «модуль:Класс»; модуль ищется в текущем каталоге.)
+(`greeter:Greeter` — «модуль:Класс»; модуль ищется в текущем каталоге. Команда
+`sukarisebot greeter:Greeter` делает то же самое.)
 
 ## Что дальше
 
@@ -152,8 +158,8 @@ python -m sukarisebot greeter:Greeter --room room-... --token srbot_...
 |---|---|
 | `ConnectionRefused: invalid or revoked bot token` | Токен неверен, заменён кнопкой «Новый токен», бот выключен или удалён. Проверьте токен. |
 | `ConnectionRefused: the bot needs designer rights in the room…` | Добавьте логин бота в дизайнеры комнаты (шаг 3). |
-| Бот не входит в комнату, а в консоли повторяются предупреждения `сервер отказал в подключении: the bot's owner needs an active PREMIUM subscription; повтор` | У владельца закончился PREMIUM. Отказ временный: бот повторяет попытки сам и подключится после продления подписки. |
-| `ConnectionRefused: server refused the connection (HTTP 404)` | Неверный адрес шлюза или бот-API на сервере не включён. Проверьте `SUKARISEBOT_URL`. |
+| Бот не входит в комнату, а в консоли повторяются предупреждения с текстом `the bot's owner needs an active PREMIUM subscription` | У владельца закончился PREMIUM. Отказ временный: бот повторяет попытки сам и подключится после продления подписки. |
+| `ConnectionRefused` с упоминанием `HTTP 404` | Неверный адрес шлюза или бот-API на сервере не включён. Бот повторяет попытки 5 минут подряд и затем завершается. Проверьте `SUKARISEBOT_URL`. |
 
 Полная таблица отказов сервера — в разделе [«Ошибки и отказы»](errors.md).
 Чтобы увидеть, что происходит внутри, включите журнал:

@@ -169,7 +169,7 @@ def test_the_command_line_names_bots_precisely(tmp_path: Path, monkeypatch: pyte
     assert isinstance(bot, Bot)
     with pytest.raises(InvalidArgument):
         load_bot("dice")
-    with pytest.raises(InvalidArgument, match="не является подклассом sukarisebot.Bot"):
+    with pytest.raises(InvalidArgument, match=r"не является подклассом sukarisebot\.Bot"):
         load_bot("json:dumps")
     assert main(["no-colon-here"]) == 2
     assert main(["definitely_missing_module:Bot"]) == 2
